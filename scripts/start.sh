@@ -1,15 +1,16 @@
 #!/usr/bin/env bash
-# Launcher: sets up and runs both the backend (FastAPI) and frontend (Vite dev
+# Launcher: sets up and runs both the backend (FastAPI) and frontend (Next.js dev
 # server), then opens the app in your browser. Safe to re-run -- it skips any
 # setup step that's already done (existing venv, installed deps, existing .env).
 set -e
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-BACKEND_DIR="$SCRIPT_DIR/backend"
-FRONTEND_DIR="$SCRIPT_DIR/frontend"
-LOG_DIR="$SCRIPT_DIR/logs"
+# This script lives in scripts/, so the project root is one level up.
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+BACKEND_DIR="$ROOT_DIR/backend"
+FRONTEND_DIR="$ROOT_DIR/frontend"
+LOG_DIR="$ROOT_DIR/logs"
 BACKEND_PORT=8000
-FRONTEND_PORT=5173
+FRONTEND_PORT=3000
 
 echo "== Voice PDF Book Q&A -- Launcher =="
 echo ""
@@ -100,7 +101,7 @@ if [ "$ready" != "true" ]; then
   echo "The backend didn't come up in time. Check $LOG_DIR/backend.log for details."
 fi
 
-sleep 2  # give Vite a moment to finish its own startup
+sleep 2  # give Next.js a moment to finish its own startup
 
 open "http://localhost:$FRONTEND_PORT" 2>/dev/null \
   || xdg-open "http://localhost:$FRONTEND_PORT" 2>/dev/null \

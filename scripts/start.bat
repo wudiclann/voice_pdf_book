@@ -1,16 +1,17 @@
 @echo off
 setlocal enabledelayedexpansion
-REM Launcher: sets up and runs both the backend (FastAPI) and frontend (Vite dev
+REM Launcher: sets up and runs both the backend (FastAPI) and frontend (Next.js dev
 REM server) in their own windows, then opens the app in your browser. Safe to
 REM re-run -- it skips any setup step that's already done (existing venv,
 REM installed deps, existing .env). Double-click this file in File Explorer,
 REM or run it from a terminal.
 
-set "ROOT_DIR=%~dp0"
+REM This script lives in scripts/, so the project root is one level up.
+for %%I in ("%~dp0..") do set "ROOT_DIR=%%~fI\"
 set "BACKEND_DIR=%ROOT_DIR%backend"
 set "FRONTEND_DIR=%ROOT_DIR%frontend"
 set "BACKEND_PORT=8000"
-set "FRONTEND_PORT=5173"
+set "FRONTEND_PORT=3000"
 
 echo == Voice PDF Book Q&A -- Launcher ==
 echo.
