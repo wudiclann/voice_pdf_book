@@ -52,7 +52,6 @@ export interface Strings {
   keyClearedToast: string;
   invalidKeyToast: string;
   keyRequiredToast: string;
-  voiceSectionLabel: string;
   voiceSectionDesc: string;
   voiceFieldLabel: string;
   speedFieldLabel: string;
@@ -106,19 +105,18 @@ export const STRINGS: Record<Language, Strings> = {
     cancelKeyChangeBtn: "Cancel",
     clearKeyBtn: "Clear key",
     confirmClearKey: "Remove the saved OpenAI API key? Uploading and asking questions will stop working until a new key is saved.",
-    keySavedTag: "Key saved",
+    keySavedTag: "Key saved.",
     keySavedToast: "OpenAI API key saved.",
     keyClearedToast: "OpenAI API key removed.",
     invalidKeyToast: "That doesn't look like a valid OpenAI API key.",
     keyRequiredToast: "Set up your OpenAI API key in Settings first.",
-    voiceSectionLabel: "Answer voice",
     voiceSectionDesc: "Choose the voice and speaking speed used for spoken answers.",
-    voiceFieldLabel: "Voice",
+    voiceFieldLabel: "Answer voice",
     speedFieldLabel: "Speaking speed",
     voiceSettingsSavedToast: "Voice settings saved.",
   },
   zh: {
-    appName: "Voice PDF Book",
+    appName: "语音 PDF 书籍",
     newBook: "新书",
     library: "书库",
     settingsNav: "设置",
@@ -160,14 +158,13 @@ export const STRINGS: Record<Language, Strings> = {
     cancelKeyChangeBtn: "取消",
     clearKeyBtn: "清除密钥",
     confirmClearKey: "移除已保存的 OpenAI API 密钥？在保存新密钥之前，上传与提问功能将无法使用。",
-    keySavedTag: "密钥已保存",
+    keySavedTag: "密钥已保存。",
     keySavedToast: "OpenAI API 密钥已保存。",
     keyClearedToast: "OpenAI API 密钥已移除。",
     invalidKeyToast: "这看起来不是有效的 OpenAI API 密钥。",
     keyRequiredToast: "请先在设置中配置你的 OpenAI API 密钥。",
-    voiceSectionLabel: "回答语音",
     voiceSectionDesc: "选择语音回答使用的音色与语速。",
-    voiceFieldLabel: "音色",
+    voiceFieldLabel: "回答语音",
     speedFieldLabel: "语速",
     voiceSettingsSavedToast: "语音设置已保存。",
   },

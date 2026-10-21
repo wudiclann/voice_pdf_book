@@ -80,7 +80,7 @@ export default function Sidebar({
       {expanded ? (
         <div style={{ display: "flex", flexDirection: "column", padding: "var(--space-6) var(--space-4)", gap: "var(--space-6)", height: "100%", minWidth: SIDEBAR_WIDTH_OPEN }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "var(--space-2)" }}>
-            <div style={{ fontFamily: "var(--font-heading)", fontWeight: "var(--font-heading-weight)" as unknown as number, fontSize: 23, padding: "0 var(--space-1)", whiteSpace: "nowrap" }}>
+            <div style={{ fontFamily: "var(--font-heading)", fontWeight: "var(--font-heading-weight)" as unknown as number, fontSize: 22, padding: "0 var(--space-3)", whiteSpace: "nowrap" }}>
               {t.appName}
             </div>
             <button
@@ -113,7 +113,7 @@ export default function Sidebar({
           </div>
 
           <div className="hr-dark" style={{ margin: 0, paddingTop: "var(--space-4)", flex: 1, display: "flex", flexDirection: "column", minHeight: 0, gap: "var(--space-3)" }}>
-            <div style={{ fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase", opacity: 0.5, padding: "0 var(--space-1)" }}>
+            <div style={{ fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase", opacity: 0.5, padding: "0 var(--space-3)" }}>
               {t.conversations}
             </div>
             <div className="m-scroll" style={{ flex: 1, overflow: "auto", display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>

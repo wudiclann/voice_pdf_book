@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import type { DocumentListItem } from "../api/client";
+import { pageImageUrl, type DocumentListItem } from "../api/client";
 import type { Strings } from "../i18n";
 import { TrashIcon } from "./icons";
 
@@ -66,7 +66,7 @@ export default function Library({ t, documents, onOpenBook, onUploadClick, onDel
         }}
       >
         <div>
-          <h1 style={{ fontSize: 40, margin: 0 }}>{t.libraryTitle}</h1>
+          <h1 style={{ fontSize: 24, margin: 0 }}>{t.libraryTitle}</h1>
           <p style={{ opacity: 0.65, margin: "var(--space-2) 0 0", maxWidth: "52ch" }}>{t.librarySubtitle}</p>
         </div>
         <div style={{ display: "flex", gap: "var(--space-3)", alignItems: "center" }}>
@@ -98,7 +98,7 @@ export default function Library({ t, documents, onOpenBook, onUploadClick, onDel
               onBlur={() => setIsSearchFocused(false)}
             />
           </div>
-          <button type="button" className="btn btn-secondary" style={{ fontFamily: "var(--font-body)", fontWeight: 400 }} onClick={onUploadClick}>
+          <button type="button" className="btn btn-secondary" style={{ fontFamily: "var(--font-body)", fontWeight: 400, fontSize: 14 }} onClick={onUploadClick}>
             {t.uploadPdfBtn}
           </button>
         </div>
@@ -143,6 +143,16 @@ export default function Library({ t, documents, onOpenBook, onUploadClick, onDel
                   }}
                 >
                   {doc.title.charAt(0).toUpperCase()}
+                  {/* First page as the cover; the letter above stays as the fallback while it loads, on error, or before the book is ready. */}
+                  {doc.status === "ready" && (
+                    <img
+                      src={pageImageUrl(doc.id, 1)}
+                      alt=""
+                      loading="lazy"
+                      onError={(e) => (e.currentTarget.style.display = "none")}
+                      style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }}
+                    />
+                  )}
                   <button
                     type="button"
                     className="m-book-delete"
@@ -159,22 +169,19 @@ export default function Library({ t, documents, onOpenBook, onUploadClick, onDel
                     <TrashIcon />
                   </button>
                 </div>
-                <div>
-                  <div className="card-title" style={{ fontSize: 19, lineHeight: 1.25 }}>
+                <div style={{ marginTop: "var(--space-2)" }}>
+                  <div className="card-title" style={{ fontSize: 18, lineHeight: 1.3 }}>
                     {doc.title}
                   </div>
                   {doc.author && <div style={{ opacity: 0.6, fontSize: 14, marginTop: 2 }}>{doc.author}</div>}
                 </div>
-                <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap" }}>
-                  {doc.total_pages && <span className="tag tag-neutral">{t.pagesLabel(doc.total_pages)}</span>}
-                  <span className="tag tag-outline">
-                    {doc.status !== "ready"
-                      ? doc.status
-                      : doc.current_page
-                        ? t.pageOf(doc.current_page, doc.total_pages ?? doc.current_page)
-                        : t.notStarted}
-                  </span>
-                </div>
+                {(doc.total_pages || doc.status !== "ready") && (
+                  <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", flexWrap: "wrap" }}>
+                    {/* plain text (not a padded tag) so it lines up with the title's left edge */}
+                    {doc.total_pages && <span style={{ fontSize: 13, opacity: 0.65 }}>{t.pagesLabel(doc.total_pages)}</span>}
+                    {doc.status !== "ready" && <span className="tag tag-outline">{doc.status}</span>}
+                  </div>
+                )}
               </div>
             );
           })}

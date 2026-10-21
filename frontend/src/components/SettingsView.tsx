@@ -25,6 +25,10 @@ function ClearIcon() {
   );
 }
 
+// Same body-font style for every button in the API-key row (Save / Cancel / Change), so the
+// font doesn't flip when switching between them.
+const keyBtnStyle = { fontFamily: "var(--font-body)", fontWeight: 400, fontSize: 14 } as const;
+
 export default function SettingsView({ t, language, onLanguageChange, onApiKeyChange }: SettingsViewProps) {
   const [settings, setSettings] = useState<SettingsOut | null>(null);
   const [isEditingKey, setIsEditingKey] = useState(true);
@@ -91,7 +95,7 @@ export default function SettingsView({ t, language, onLanguageChange, onApiKeyCh
   return (
     <div className="m-scroll" style={{ flex: 1, overflow: "auto", padding: "var(--space-8) var(--space-6)" }}>
       <div style={{ maxWidth: 560, margin: "0 auto" }}>
-        <h1 style={{ fontSize: 34, margin: "0 0 var(--space-2)" }}>{t.settingsTitle}</h1>
+        <h1 style={{ fontSize: 24, margin: "0 0 var(--space-2)" }}>{t.settingsTitle}</h1>
         <p style={{ opacity: 0.65, margin: "0 0 var(--space-6)" }}>{t.settingsSubtitle}</p>
 
         <div className="card" style={{ padding: "var(--space-6)", gap: "var(--space-4)" }}>
@@ -149,17 +153,27 @@ export default function SettingsView({ t, language, onLanguageChange, onApiKeyCh
               </div>
             )}
           </div>
-          <p style={{ fontSize: 12, opacity: 0.55, margin: 0 }}>{t.apiKeyDesc}</p>
+          {/* faded via color, not opacity, so the saved-status span below can keep its full accent color */}
+          <p style={{ fontSize: 12, color: "rgba(54, 46, 40, 0.55)", margin: 0 }}>
+            {t.apiKeyDesc}
+            {!isEditingKey && (
+              <>
+                {" "}
+                <span style={{ color: "var(--color-accent)", fontWeight: 600 }}>{t.keySavedTag}</span>
+              </>
+            )}
+          </p>
           <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
             {isEditingKey ? (
               <>
-                <button type="button" className="btn btn-primary" onClick={handleSaveKey} disabled={!keyDraft.trim() || isSavingKey}>
+                <button type="button" className="btn btn-primary" style={keyBtnStyle} onClick={handleSaveKey} disabled={!keyDraft.trim() || isSavingKey}>
                   {t.saveKeyBtn}
                 </button>
                 {settings?.is_openai_key_configured && (
                   <button
                     type="button"
                     className="btn btn-ghost"
+                    style={keyBtnStyle}
                     onClick={() => {
                       setIsEditingKey(false);
                       setKeyDraft("");
@@ -171,23 +185,19 @@ export default function SettingsView({ t, language, onLanguageChange, onApiKeyCh
               </>
             ) : (
               <>
-                <button type="button" className="btn btn-secondary" onClick={() => setIsEditingKey(true)}>
+                <button type="button" className="btn btn-secondary" style={keyBtnStyle} onClick={() => setIsEditingKey(true)}>
                   {t.changeKeyBtn}
                 </button>
-                <span className="tag tag-accent">{t.keySavedTag}</span>
               </>
             )}
           </div>
         </div>
 
         <div className="card" style={{ padding: "var(--space-6)", gap: "var(--space-4)", marginTop: "var(--space-4)" }}>
-          <div style={{ fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase", opacity: 0.55 }}>
-            {t.voiceSectionLabel}
-          </div>
           <div className="field" style={{ margin: 0 }}>
             <label htmlFor="tts-voice">{t.voiceFieldLabel}</label>
             <select
-              className="input"
+              className="input select"
               id="tts-voice"
               value={voice}
               onChange={(e) => handleVoiceSettingsChange(e.target.value, speed)}

@@ -58,7 +58,7 @@ export default function PdfUpload({ t, onClose, onUploaded, isApiKeyConfigured }
     <div className="dialog-backdrop" onClick={busy ? undefined : onClose}>
       <div className="dialog" style={{ width: "min(480px, 100%)", gap: "var(--space-4)" }} onClick={(e) => e.stopPropagation()}>
         <div>
-          <div className="dialog-title" style={{ fontSize: 22 }}>
+          <div className="dialog-title" style={{ fontSize: 21 }}>
             {t.uploadDialogTitle}
           </div>
           <div style={{ fontSize: 13, opacity: 0.6, marginTop: "var(--space-1)" }}>{t.uploadDialogSubtitle}</div>

@@ -29,8 +29,8 @@
   --color-accent-800: #42121c;
   --color-accent-900: #280a11;
 
-  --font-heading: var(--next-font-heading), "Cormorant Garamond", system-ui, sans-serif;
-  --font-heading-weight: 600;
+  --font-heading: var(--next-font-heading), var(--next-font-heading-zh), "Josefin Sans", "Ma Shan Zheng", system-ui, sans-serif;
+  --font-heading-weight: 400;
   --font-body: var(--next-font-body), "Nunito", system-ui, sans-serif;
 
   --space-1: 4.6px;
@@ -100,8 +100,8 @@ textarea {
   cursor: pointer;
   text-decoration: none;
   font-family: var(--font-heading);
-  font-weight: var(--font-heading-weight);
-  font-size: 14px;
+  font-weight: 500;
+  font-size: 15px;
   line-height: 1.2;
   color: var(--color-text);
   background: transparent;
@@ -165,6 +165,87 @@ textarea {
 .input:focus-visible {
   border-color: var(--color-accent);
 }
+
+/* -- select (voice dropdown) --
+   Fallback: native select with a custom chevron, padded so the arrow isn't flush with the edge.
+   Where supported, appearance: base-select also makes the opened list styleable. */
+.select {
+  appearance: none;
+  cursor: pointer;
+  padding-right: 40px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23362e28' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  background-size: 14px;
+}
+@supports (appearance: base-select) {
+  .select,
+  .select::picker(select) {
+    appearance: base-select;
+  }
+  .select {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 6px 14px;
+    background-image: none;
+  }
+  .select::picker-icon {
+    content: "";
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+    background: currentColor;
+    opacity: 0.55;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") center / contain no-repeat;
+    transition: rotate 0.2s ease;
+  }
+  .select:open::picker-icon {
+    rotate: 180deg;
+  }
+  .select::picker(select) {
+    /* always drop down under the field; the list scrolls if the space below is short */
+    position-area: block-end span-inline-end;
+    position-try-fallbacks: none;
+    margin-top: 6px;
+    padding: 4px;
+    background: var(--color-bg);
+    border: 1px solid var(--color-divider);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    /* 100% = the space available below the field (the anchor cell); leave room for the
+       top margin plus a small gap above the window edge */
+    max-height: min(280px, calc(100% - 12px));
+    /* thin themed scrollbar (the ::-webkit-scrollbar pseudo-elements can't be chained onto
+       ::picker() -- Next's CSS parser rejects them) */
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-neutral-300) transparent;
+  }
+  .select option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    cursor: pointer;
+  }
+  .select option:hover,
+  .select option:focus-visible {
+    background: rgba(54, 46, 40, 0.06);
+    outline: none;
+  }
+  .select option:checked {
+    color: var(--color-accent);
+    font-weight: 600;
+  }
+  .select option::checkmark {
+    order: 1;
+    margin-left: auto;
+    color: var(--color-accent);
+  }
+}
 .seg {
   display: inline-flex;
   overflow: hidden;
@@ -176,12 +257,33 @@ textarea {
   align-items: center;
   gap: 6px;
   padding: 7px 12px;
-  font-size: 13px;
+  font-size: 14px;
   cursor: pointer;
-  font-family: var(--font-body);
+  font-family: var(--font-heading);
+  font-weight: 400;
 }
 .seg-opt + .seg-opt {
   border-left: 1px solid var(--color-divider);
+}
+/* compact pill variant (answer tone, in the composer) */
+.seg-sm {
+  padding: 2px; /* inset, so the filled selected pill has breathing room */
+  border-width: 1px;
+  border-radius: 999px;
+}
+.seg-sm .seg-opt {
+  padding: 3px 10px;
+  font-size: 13px;
+  border-radius: 999px;
+}
+.seg-sm .seg-opt + .seg-opt {
+  border-left: none;
+}
+.seg-sm .seg-opt:has(input:checked) {
+  color: #fff;
+  background: var(--color-accent);
+  border-radius: 999px; /* beats the base selected rule's 4px radius */
+  box-shadow: none;
 }
 .seg-opt input {
   position: absolute;
@@ -192,6 +294,7 @@ textarea {
 }
 .seg-opt:has(input:checked) {
   color: var(--color-accent);
+  font-weight: 500;
   border-radius: var(--radius-md);
   box-shadow: inset 0 0 0 1.5px var(--color-accent);
 }
@@ -237,16 +340,6 @@ textarea {
 .tag-accent {
   background: var(--color-accent-100);
   color: var(--color-accent-800);
-}
-.tag-clickable {
-  cursor: pointer;
-  background: transparent;
-  font-family: inherit;
-  transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
-}
-.tag-clickable:hover {
-  box-shadow: var(--shadow-sm);
-  transform: translateY(-2px);
 }
 
 /* -- dialog -- */
@@ -347,6 +440,8 @@ textarea {
 }
 .m-navlink svg {
   flex-shrink: 0;
+  /* 16px icons get the same 22px slot as the new-book badge, so icon centers and labels line up */
+  margin: 0 3px;
 }
 .m-navlink:hover,
 .m-navlink.active {
@@ -406,6 +501,14 @@ textarea {
   background: var(--color-neutral-300);
   border-radius: 4px;
 }
+/* PDF pane: its scrollbars (the vertical one sat on the edge shared with the chat and read as a
+   stray line) are hidden; the wheel and click-drag panning still scroll. */
+.m-pdf-scroll::-webkit-scrollbar:vertical {
+  width: 0;
+}
+.m-pdf-scroll::-webkit-scrollbar:horizontal {
+  height: 0;
+}
 
 /* -- shimmer / loading text -- */
 @keyframes shimmer-sweep {
@@ -448,6 +551,147 @@ textarea {
 .bubble-pop {
   animation: bubble-pop 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
   transform-origin: bottom center;
+}
+
+/* -- chat bubbles -- */
+.msg {
+  display: flex;
+  flex-direction: column;
+}
+.msg-user {
+  align-items: flex-end;
+}
+.msg-assistant {
+  align-items: flex-start;
+}
+.bubble {
+  max-width: 88%;
+  padding: 13px 18px;
+  font-size: 15px;
+  line-height: 1.6;
+  border-radius: 16px;
+}
+.bubble-user {
+  background: var(--color-accent);
+  color: #faf5f0;
+  border-bottom-right-radius: 4px;
+  box-shadow: 0 2px 10px rgba(122, 35, 51, 0.22);
+  transform-origin: bottom right;
+}
+.bubble-assistant {
+  background: #fffdfa;
+  color: var(--color-text);
+  border: 1px solid rgba(228, 213, 200, 0.7);
+  border-bottom-left-radius: 4px;
+  box-shadow: 0 2px 10px rgba(46, 36, 28, 0.07);
+  transform-origin: bottom left;
+}
+.bubble-sources {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--color-divider);
+}
+.cite-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px 3px 8px;
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--color-accent-800);
+  background: var(--color-accent-100);
+  border: none;
+  border-radius: 999px;
+}
+button.cite-chip {
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+button.cite-chip:hover {
+  background: var(--color-accent-200);
+  transform: translateY(-1px);
+}
+
+/* -- audio player (inside bubbles) -- */
+.audio {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 240px;
+  margin-top: 12px;
+}
+.bubble > .audio:only-child {
+  margin-top: 0;
+}
+.audio-play {
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0; /* reset the browser's default button padding, which is uneven and offset the icon */
+  border: none;
+  border-radius: 50%;
+  color: #faf5f0;
+  background: var(--color-accent);
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.12s ease;
+}
+.audio-play:hover {
+  background: var(--color-accent-700);
+}
+.audio-play:active {
+  transform: scale(0.94);
+}
+.audio-track {
+  position: relative;
+  flex: 1;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--color-neutral-300);
+  cursor: pointer;
+}
+.audio-track::before {
+  /* larger invisible hit area, so the thin track is easy to click */
+  content: "";
+  position: absolute;
+  inset: -9px 0;
+}
+.audio-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: inherit;
+  background: var(--color-accent);
+}
+.audio-time {
+  min-width: 44px;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  opacity: 0.6;
+}
+.audio-on-accent .audio-play {
+  color: var(--color-accent);
+  background: #faf5f0;
+}
+.audio-on-accent .audio-play:hover {
+  background: #fff;
+}
+.audio-on-accent .audio-track {
+  background: rgba(250, 245, 240, 0.28);
+}
+.audio-on-accent .audio-fill {
+  background: #faf5f0;
+}
+.audio-on-accent .audio-time {
+  color: #faf5f0;
+  opacity: 0.85;
 }
 
 /* -- upload spinner ring -- */
