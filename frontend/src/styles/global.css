@@ -29,9 +29,9 @@
   --color-accent-800: #42121c;
   --color-accent-900: #280a11;
 
-  --font-heading: "Cormorant Garamond", system-ui, sans-serif;
+  --font-heading: var(--next-font-heading), "Cormorant Garamond", system-ui, sans-serif;
   --font-heading-weight: 600;
-  --font-body: "Nunito", system-ui, sans-serif;
+  --font-body: var(--next-font-body), "Nunito", system-ui, sans-serif;
 
   --space-1: 4.6px;
   --space-2: 9.2px;

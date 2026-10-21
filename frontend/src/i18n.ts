@@ -61,7 +61,7 @@ export interface Strings {
 
 export const STRINGS: Record<Language, Strings> = {
   en: {
-    appName: "Take Home Demo",
+    appName: "Voice PDF Book",
     newBook: "New book",
     library: "Library",
     settingsNav: "Settings",
@@ -118,7 +118,7 @@ export const STRINGS: Record<Language, Strings> = {
     voiceSettingsSavedToast: "Voice settings saved.",
   },
   zh: {
-    appName: "Take Home Demo",
+    appName: "Voice PDF Book",
     newBook: "新书",
     library: "书库",
     settingsNav: "设置",
