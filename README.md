@@ -1,160 +1,120 @@
-# Voice PDF Book Q&A
+# Voice PDF Book
 
-Upload a PDF book and have a spoken conversation with it: ask a question by voice (or type
-it), and get a spoken, book-grounded answer back — with citations to the actual pages the
-answer came from.
+Upload a PDF book and talk to it. Ask a question by voice (or type it) and get a spoken answer
+grounded in the book's own pages, with citations you can click to jump to the source.
 
+![Chat view: the PDF page on the left, the conversation on the right](docs/screenshots/chat.png)
+
+```mermaid
+flowchart LR
+    Mic["Mic (MediaRecorder)"] --> ASR["Whisper"]
+    ASR --> QA["Query analysis<br/>(small talk? standalone query)"]
+    QA --> Hybrid["Hybrid retrieval<br/>BM25 + vectors → RRF"]
+    Hybrid --> Rerank["Cross-encoder rerank"]
+    Rerank --> Gate{"Relevant<br/>enough?"}
+    Gate -- yes --> LLM["Grounded answer<br/>(gpt-4o-mini)"]
+    Gate -- no --> Refuse["Natural refusal"]
+    LLM --> TTS["TTS"]
+    Refuse --> TTS
+    TTS --> Play["Audio playback"]
 ```
-Mic input → ASR → hybrid RAG (retrieve from the book + LLM) → TTS → audio playback
-```
 
-## What this actually is
+## Features
 
-This started as a take-home exercise: build a web app where a user uploads a PDF book and has a
-spoken conversation with it, grounded in that book's actual content — not the model's general
-knowledge. The interesting part isn't "call an LLM in a loop"; it's everything around that:
+- **Library of books.** Upload several PDFs; each book has its own conversation, reading
+  position and answer tone. Ingestion runs in the background, so the UI stays responsive.
+- **Voice in, voice out.** Record a question, get a transcription, an answer and a spoken
+  reply. Both your recording and the spoken answer are saved, so past turns stay replayable
+  and scrubbable.
+- **Structure-aware retrieval.** Chunks follow chapter and section boundaries (from the PDF's
+  table of contents when it has one, heading heuristics when it doesn't), with overlap between
+  neighbours. Search is hybrid: BM25 keyword search and vector similarity run side by side,
+  are merged with Reciprocal Rank Fusion, and are re-scored by a cross-encoder reranker.
+- **Honest refusals.** If nothing retrieved is relevant enough (a hard threshold on the
+  reranker score, not an LLM judgement call), the app says the book doesn't cover it instead
+  of answering from general knowledge.
+- **Conversation memory.** A window of the most recent messages plus a rolling summary of
+  older ones, so follow-ups like "why not?" resolve correctly, even right after a refusal.
+- **Citations.** Every answer lists the chapters and pages it drew on; click one to jump the
+  PDF viewer to that page.
+- **Answer tone.** Switch between Concise, Conversational and Scholarly per conversation.
+- **Configurable at runtime.** The OpenAI key, voice and speaking speed are set from the
+  Settings page and take effect immediately, with no restart and no hand-editing of `.env`.
 
-- **A library, not a single upload.** The app holds multiple books at once, each with its own
-  conversation (chat history, reading position, answer tone), not a one-shot Q&A widget.
-- **Retrieval that isn't naive fixed-size chunking.** Chunking is chapter/section-aware (using
-  the PDF's own table of contents when present, falling back to heading heuristics), with overlap
-  between adjacent chunks. Retrieval itself is hybrid: BM25 keyword search and vector similarity
-  search run in parallel, merged with Reciprocal Rank Fusion, then re-scored by a cross-encoder
-  reranker — so a query has to actually match the text well (not just embed nearby) to surface.
-- **A real refusal path.** If nothing retrieved is actually relevant (a hard threshold on the
-  reranker's own score, not left to LLM judgment), the app says so — in a naturally-worded,
-  memory-aware refusal — instead of guessing from the model's general knowledge and passing it
-  off as coming from the book.
-- **Conversation memory**, not just a stateless single-turn Q&A: a short-term window of recent
-  messages plus a rolling summary of everything older, so pronoun follow-ups ("what about that?",
-  "why not?") resolve correctly even many turns later, and even right after a refusal.
-- **The full voice loop, not just text.** Recording → Whisper transcription → the RAG pipeline
-  above → TTS synthesis → playback, with the user's own recording and the spoken answer both
-  saved and replayable later, not just played once and discarded.
-- **Runtime-configurable, not hardcoded.** The OpenAI API key, TTS voice, and speaking speed are
-  all editable from the app's own Settings page and take effect immediately (no restart, no
-  `.env` hand-editing) — see [Method 1](#method-1-one-click-launcher-recommended) below for how
-  little setup that actually requires.
+## Screenshots
 
-The original brief (translated from Chinese) explicitly calls out five things it's graded on:
-third-party service selection, **retrieval quality** (naive fixed-size chunking is flagged as
-insufficient), creativity, engineering/AI-assisted-development practice, and UI/design taste —
-the design choices above (and the [Evaluation](#evaluation) section further down) are aimed
-squarely at those.
+| Library | Upload |
+|---|---|
+| ![Library](docs/screenshots/library.png) | ![Upload dialog](docs/screenshots/upload.png) |
 
-### Tech stack
+![Settings: API key, answer voice and speed, interface language](docs/screenshots/settings.png)
+
+## Tech stack
 
 | Layer | Choice |
 |---|---|
-| Frontend | React + TypeScript, Vite |
+| Frontend | React 19 + TypeScript, Next.js (App Router) |
 | Backend | FastAPI (Python) |
-| Metadata/session storage | SQLite |
+| Metadata and sessions | SQLite (SQLAlchemy) |
 | PDF parsing | PyMuPDF |
+| Embeddings | OpenAI `text-embedding-3-small` |
 | Vector store | ChromaDB |
 | Keyword search | BM25 (`rank-bm25`) |
-| Hybrid merge | Reciprocal Rank Fusion (BM25 + vector) |
-| Reranker | Cross-encoder (`sentence-transformers`, `ms-marco-MiniLM-L-6-v2`) |
-| LLM / ASR / TTS | OpenAI — `gpt-4o-mini`, Whisper (`whisper-1`), `gpt-4o-mini-tts` |
+| Hybrid merge | Reciprocal Rank Fusion |
+| Reranker | Cross-encoder `ms-marco-MiniLM-L-6-v2` (`sentence-transformers`, runs locally) |
+| LLM | OpenAI `gpt-4o-mini` |
+| Speech to text | OpenAI Whisper (`whisper-1`) |
+| Text to speech | OpenAI `gpt-4o-mini-tts` |
 | Audio capture | Browser `MediaRecorder` API |
 
-## Prerequisites
+## Getting started
 
-- **Python 3.11+** (tested on 3.13/3.14)
-- **Node.js 20+** and npm (tested on Node 20)
-- **An OpenAI API key** — https://platform.openai.com/api-keys. Used for embeddings, chat
-  completions, Whisper transcription, and text-to-speech. You don't need this key until the
-  app is already running — it's entered from the app's own **Settings** page, not by editing
-  any file by hand.
+### Prerequisites
 
-Nothing else needs to be installed manually — the launcher (or the manual steps below) creates
-the Python virtual environment and installs all dependencies for you.
+- **Python 3.11+**
+- **Node.js 20+** and npm
+- **An OpenAI API key** ([create one](https://platform.openai.com/api-keys)), used for
+  embeddings, chat, Whisper and text-to-speech. You enter it in the app's **Settings** page
+  after it starts, so you don't need it up front.
 
-## Method 1: One-click launcher (recommended)
+### Option 1: launcher script (recommended)
 
-**macOS:** double-click **`Start Demo.command`** in the project root. Finder will ask about
-running a script the first time — click **Open**. A Terminal window opens and shows progress;
-leave it open while you use the app.
+From the project root:
 
-**Windows:** double-click **`start.bat`** in the project root (a Command Prompt window opens
-automatically and shows progress). Requires Python installed with **"Add python.exe to PATH"**
-checked during setup, and Node.js installed — both installers do this by default if you don't
-change anything.
+| Platform | Run |
+|---|---|
+| macOS | Double-click **`scripts/Start Demo.command`** (the first time, click **Open** when Finder asks) |
+| macOS / Linux | `./scripts/start.sh` |
+| Windows | Double-click **`scripts\start.bat`**, or run it from a Command Prompt |
 
-**Or from a terminal** (macOS/Linux: `./start.sh`, Windows Command Prompt: `start.bat`).
+The script checks for Python and npm, creates `backend/venv` and installs dependencies (the
+first run downloads a few hundred MB of ML libraries and the reranker model, so allow a few
+minutes), creates `backend/.env` from the template, runs `npm install`, starts both servers,
+waits for the backend and opens the app. It frees ports 8000 and 3000 first, so it's safe to
+re-run.
 
-The script:
+- **macOS / Linux:** both servers share one terminal; press **Ctrl+C** to stop them. Logs go to
+  `logs/backend.log` and `logs/frontend.log`.
+- **Windows:** the backend and frontend each open in their own window; close both to stop.
 
-1. Checks that Python and npm are installed.
-2. Creates `backend/venv/` and installs Python dependencies (first run only — this step downloads
-   a few hundred MB of ML libraries plus a small reranker model, so it can take a few minutes;
-   later runs are fast).
-3. Creates an empty `backend/.env` from `backend/.env.example` if one doesn't already exist.
-4. Runs `npm install` for the frontend (first run only).
-5. Starts the backend (`:8000`) and frontend (`:5173`), waits for the backend to be ready, and
-   opens the app in your default browser automatically.
-6. Frees up ports 8000/5173 first if a previous run is still using them, so it's safe to just
-   run it again.
+### Option 2: manual setup
 
-**macOS/Linux:** both servers run in the same terminal; press **Ctrl+C** there to stop them
-cleanly, and check `logs/backend.log` / `logs/frontend.log` if something goes wrong.
-
-**Windows:** the backend and frontend each open in their own Command Prompt window (their
-output is right there, not in a log file) — close both windows, or press Ctrl+C in each, to
-stop the app. The original launcher window pauses at the end with a summary; press any key
-there once you're done.
-
-### First-time setup inside the app
-
-Once the app opens: go to **Settings** → paste your OpenAI API key → **Save key**. Until a key
-is saved, uploading a PDF or asking a question shows a toast asking you to add one — nothing
-will silently fail.
-
-## Method 2: Manual setup (step by step)
-
-If you'd rather run everything yourself, from the project root:
-
-### 1. Backend
-
-**macOS/Linux:**
+**Backend** (from the project root):
 
 ```bash
 cd backend
 python3 -m venv venv
-source venv/bin/activate
+source venv/bin/activate          # Windows: venv\Scripts\activate
 pip install -r requirements.txt
-cp .env.example .env            # creates an empty .env; the API key is added via Settings, not here
+cp .env.example .env              # Windows: copy .env.example .env
 uvicorn app.main:app --reload --port 8000
 ```
 
-**Windows (Command Prompt):**
+> **Slow `pip install`?** The backend pulls in torch and sentence-transformers for the local
+> reranker. [`uv`](https://docs.astral.sh/uv/) is a much faster drop-in: `pip install uv`, then
+> `uv venv venv` and `uv pip install -r requirements.txt`.
 
-```bat
-cd backend
-python -m venv venv
-venv\Scripts\activate
-pip install -r requirements.txt
-copy .env.example .env
-uvicorn app.main:app --reload --port 8000
-```
-
-Leave this running. The API is now live at `http://localhost:8000`.
-
-> **`pip install` slow?** The backend pulls in a few ML libraries (torch, sentence-transformers)
-> for the local reranker, which can take a while on `pip`. [`uv`](https://docs.astral.sh/uv/) is
-> a drop-in, much faster alternative — install it once (`pip install uv`), then swap the venv
-> creation and install lines above for:
->
-> ```bash
-> uv venv venv
-> source venv/bin/activate         # Windows: venv\Scripts\activate
-> uv pip install -r requirements.txt
-> ```
->
-> Everything else (`.env` copy, `uvicorn` command) stays the same either way.
-
-### 2. Frontend
-
-In a **second** terminal, from the project root:
+**Frontend** (in a second terminal):
 
 ```bash
 cd frontend
@@ -162,124 +122,155 @@ npm install
 npm run dev
 ```
 
-Vite prints the local URL (`http://localhost:5173`) — open that in your browser.
+Open http://localhost:3000. The frontend proxies API calls to the backend on port 8000 (see
+`frontend/next.config.ts`), so keep the backend on that port.
 
-### 3. Add your API key
+### First run
 
-In the app: **Settings** → paste your OpenAI API key → **Save key**.
+1. Open **Settings**, paste your OpenAI key and click **Save key**. Until a key is saved,
+   uploading and asking show a prompt to add one rather than failing silently.
+2. Go to **Library**, click **Upload PDF** and pick a book (PDF only, up to 50 MB).
+   A sample paper is included at `backend/tests/fixtures/attention_is_all_you_need.pdf`.
+3. When the book's status shows **ready**, open it and ask a question with the mic button
+   or the text box. Browsers allow microphone access on `localhost`.
 
-### Stopping
+## Configuration
 
-Press **Ctrl+C** in each terminal (backend and frontend).
+Everything below is editable from **Settings** and persisted to `backend/.env`; you only edit
+the file by hand if you prefer to.
 
-## Evaluation
+| Variable | Default | Description |
+|---|---|---|
+| `OPENAI_API_KEY` | _(empty)_ | Format-checked (`sk-…`), stored server-side and never sent back to the browser once saved |
+| `TTS_VOICE` | `alloy` | One of `alloy`, `ash`, `ballad`, `coral`, `echo`, `fable`, `nova`, `onyx`, `sage`, `shimmer`, `verse` |
+| `TTS_SPEED` | `1.25` | Speaking speed, 0.5 to 2.0 |
 
-There are three layers of checks in this project, each covering something different. All of
-them need the backend's virtual environment active and a real `OPENAI_API_KEY` in `backend/.env`
-(they make real OpenAI calls — no mocking anywhere in this project).
+The interface language toggle (English / 中文) only translates menus and buttons. Speech
+recognition, speech synthesis and retrieval are English-only.
 
-### 1. The pytest suite — correctness of every endpoint
+## How it works
 
-The main automated test suite. Covers upload/ingestion, chat, voice (`/ask`), settings
-(including the API-key gating and rate limits), and the RAG pipeline (query analysis, retrieval,
-refusal gate, memory) — status codes, persistence, audio generation, citations, and edge cases.
-Runs against an isolated temp database/vector-store/`.env` copy (see `backend/tests/conftest.py`),
-so it never touches your real data.
+**Ingestion.** An upload returns immediately with status `processing`; a background task
+parses the PDF (PyMuPDF), splits it into chapter-aware overlapping chunks, embeds them, and
+writes them to both ChromaDB (vectors) and SQLite (the BM25 corpus), keyed by the same chunk
+id so the two ranked lists can be merged. The status becomes `ready`, or `failed` with an
+error message.
+
+**Answering.** For each question the backend:
+
+1. Transcribes audio with Whisper (voice turns only).
+2. Runs one memory-aware LLM call that classifies the message (small talk or a real
+   question) and, for real questions, rewrites it as a standalone search query. Small talk
+   skips retrieval.
+3. Runs BM25 and vector search over that book's chunks, merges them with RRF, and reranks the
+   merged list with the cross-encoder to pick the top few chunks.
+4. If the top rerank score is below the threshold (`REFUSAL_THRESHOLD` in
+   `backend/app/core/rag.py`), writes a natural refusal. Otherwise generates an answer from
+   the retrieved chunks, the conversation memory and the chosen tone.
+5. Synthesizes speech, saves the audio, and stores the turn with its citations.
+
+**Memory** has two layers: the last 8 messages verbatim, and a rolling summary that older
+messages are folded into by a background task, so it never blocks a reply.
+
+## API
+
+Interactive docs are served by FastAPI at http://localhost:8000/docs.
+
+| Endpoint | Purpose |
+|---|---|
+| `POST /documents/upload` | Upload a PDF (5 requests/min) |
+| `GET /documents` | List books |
+| `GET /documents/{id}` | Ingestion status |
+| `DELETE /documents/{id}` | Delete a book and its data |
+| `GET /documents/{id}/chapters` | Chapter list |
+| `GET /documents/{id}/pages/{n}` | Rendered page image |
+| `GET /documents/{id}/conversation` | Get or create the book's conversation |
+| `PATCH /conversations/{id}` | Update answer tone or reading position |
+| `DELETE /conversations/{id}` | Delete a conversation |
+| `GET /conversations/{id}/messages` | Message history with citations |
+| `POST /chat` | Text question → answer and citations (20/min) |
+| `POST /ask` | Voice question (audio upload) → transcript, answer, citations and spoken audio (20/min) |
+| `POST /transcribe` | Audio → text |
+| `GET/PUT/DELETE /settings…` | Read settings, save or clear the API key, set voice and speed |
+| `GET /audio/{file}` | Saved answer and question audio |
+
+## Project structure
+
+```
+.
+├── backend/
+│   ├── app/
+│   │   ├── main.py            # FastAPI entrypoint
+│   │   ├── config.py          # settings, .env read/write
+│   │   ├── api/routes/        # documents, chat, settings
+│   │   ├── core/              # pdf_parser, chunker, embeddings, vector_store,
+│   │   │                      # keyword_search, retrieval (RRF), reranker, rag,
+│   │   │                      # memory, asr, tts
+│   │   ├── db/                # SQLAlchemy models and session
+│   │   └── schemas/           # Pydantic models
+│   ├── tests/                 # pytest suite and fixture PDFs
+│   ├── scripts/               # retrieval eval, QA benchmark, helper scripts
+│   ├── eval/                  # retrieval eval queries and results
+│   └── data/                  # SQLite db, Chroma store, PDFs, audio (gitignored)
+├── frontend/
+│   ├── next.config.ts         # proxies backend paths to :8000
+│   └── src/
+│       ├── app/               # routes: /library, /books/[id], /preferences
+│       ├── components/        # AppShell, Sidebar, Library, ChatArea, …
+│       ├── api/client.ts      # fetch wrappers for the backend
+│       └── i18n.ts            # UI strings (English / 中文)
+├── docs/screenshots/
+├── scripts/               # launchers: start.sh, start.bat, Start Demo.command
+└── CLAUDE.md                  # design decisions and working notes
+```
+
+## Testing and evaluation
+
+All checks need the backend venv active and a real key in `backend/.env`, because they make
+real OpenAI calls (nothing is mocked).
+
+**Test suite.** Covers upload and ingestion, chat, voice, settings (including key gating and
+rate limits) and the RAG pipeline. It runs against an isolated temporary database, vector store
+and `.env`, so it never touches your data.
 
 ```bash
 cd backend
-source venv/bin/activate        # Windows: venv\Scripts\activate
-pytest -q
+source venv/bin/activate          # Windows: venv\Scripts\activate
+pytest -q                         # a few minutes; add a path to run one file
 ```
 
-Takes a couple of minutes (real API calls). A single file can be run on its own, e.g.
-`pytest tests/test_chat.py -q`.
-
-### 2. Upload the sample book (needed for evals #2 and #3 below)
-
-Both retrieval-eval scripts are written against one specific sample PDF, already included in
-the repo — no separate download needed:
-
-```
-backend/tests/fixtures/attention_is_all_you_need.pdf
-```
-
-With the backend and frontend both running (Method 1 or Method 2 above):
-
-1. Open the app in your browser.
-2. In the **Library** view, click **Upload PDF**.
-3. Browse to and select `backend/tests/fixtures/attention_is_all_you_need.pdf`.
-4. Wait until its status shows **ready** (a short "processing" indicator appears first — this
-   is the parse/chunk/embed pipeline running).
-
-Both scripts below auto-match this book by title, so you don't need to pass its ID manually
-unless the title-matching fails (the upload flow title-cases the filename, e.g.
-`attention_is_all_you_need.pdf` → `Attention Is All You Need` — if that doesn't match what's in
-`eval/queries.json`/`scripts/qa_benchmark.json`, grab the document's ID from the Library page
-and pass `--document-id <id>` explicitly).
-
-### 3. `scripts/eval_retrieval.py` — retrieval quality in isolation
-
-Runs a fixed set of queries (`backend/eval/queries.json`) through vector-only search and the
-full hybrid pipeline (BM25 + vector RRF → cross-encoder rerank) side by side, judges each with
-an LLM, and reports a hit-rate comparison. This is what actually demonstrates the retrieval
-strategy is better than naive search — the brief specifically calls out retrieval quality as
-the part most likely to be scrutinized.
+**Retrieval eval and QA benchmark.** Both are written against the sample paper, so upload
+`backend/tests/fixtures/attention_is_all_you_need.pdf` through the app first. They match the
+book by title; pass `--document-id <id>` if that fails.
 
 ```bash
-cd backend
-source venv/bin/activate        # Windows: venv\Scripts\activate
 python scripts/eval_retrieval.py [--document-id ID] [--out eval/results.json]
+python scripts/run_qa_benchmark.py [--document-id ID]
 ```
 
-### 4. `scripts/run_qa_benchmark.py` — does the full answer pipeline actually work
-
-The other two check components in isolation; this one hits `/chat` end-to-end with a fixed set
-of real questions about the sample book (`backend/scripts/qa_benchmark.json`) and checks each
-answer for the facts it should contain — e.g. "What BLEU score did the model get on
-English-to-German?" must mention `28.4`. One case is deliberately out-of-scope (a cookie
-recipe question) and checks that the refusal gate fires instead of guessing. Each case runs in
-its own fresh conversation. Prints a PASS/FAIL per case and a summary; exits non-zero if
-anything failed.
-
-```bash
-cd backend
-source venv/bin/activate        # Windows: venv\Scripts\activate
-python scripts/run_qa_benchmark.py [--document-id ID] [--cases scripts/qa_benchmark.json]
-```
-
-Uses `fastapi.testclient.TestClient` against the app in-process (like the pytest suite), but
-against your **real** dev database — so it needs the sample book uploaded first (step 2 above),
-not just present in `tests/fixtures/`.
+- `eval_retrieval.py` runs `eval/queries.json` through vector-only search and the full hybrid
+  pipeline, judges both with an LLM, and reports a hit-rate comparison.
+- `run_qa_benchmark.py` asks fixed questions through `/chat` and checks each answer for the
+  facts it must contain (for example the paper's 28.4 BLEU score). One case is out of scope
+  on purpose and must trigger a refusal. It exits non-zero if any case fails.
 
 ## Troubleshooting
 
-- **"Port already in use"**: another process is already bound to 8000 or 5173. The launcher
-  script handles this automatically; if running manually, stop whatever's using that port or
-  pass a different port to `uvicorn`/`vite`.
-- **`pip install` taking a long time**: switch to `uv` for the backend install — see the note
-  under [Method 2 → Backend](#1-backend) above. Much faster for the same dependencies.
-- **First backend request is slow**: the cross-encoder reranker model downloads from Hugging
-  Face on first startup. This only happens once — it's cached afterward.
-- **"Set up your OpenAI API key in Settings first"**: expected until you've saved a key on the
-  Settings page — see above.
-- **Uploads/answers fail with an OpenAI error**: double check the key on the Settings page is
-  correct and has available quota; save it again to retry without restarting the server.
+- **Port already in use.** Something is bound to 8000 or 3000. The launcher frees them
+  automatically; when running manually, stop the other process or choose different ports
+  (and update `next.config.ts` if you move the backend).
+- **First backend start is slow.** The reranker model downloads from Hugging Face once, then
+  is cached.
+- **"Set up your OpenAI API key in Settings first."** Expected until a key is saved.
+- **Uploads or answers fail with an OpenAI error.** Check the key and its quota on the
+  Settings page; saving again retries without a restart.
+- **Large uploads hang or fail.** The backend accepts PDFs up to 50 MB, and the frontend proxy
+  is configured to match; larger files are rejected.
 
-## Viewing the AI-assisted development process
+## Limitations
 
-`claude_session_export.zip` (project root) contains raw Claude Code session data — JSON/JSONL
-and log files capturing the actual development history (prompts, tool calls, and responses) —
-rather than a polished, prose transcript. It isn't meant to be re-imported into Claude Code or
-claude.ai; it's raw evidence of the process, not something to replay.
-
-To read it:
-
-1. Unzip `claude_session_export.zip`.
-2. The `.json`/`.jsonl` files hold the session events; a JSON-aware editor (e.g. VS Code) or a
-   pretty-printer (`python -m json.tool some_file.json`, or `jq .` if installed) makes these far
-   easier to follow than a plain text editor, since they're structured data, not prose.
-3. The `.log` files contain [terminal/tool output captured alongside the sessions].
-
-This is raw material rather than a curated writeup — worth skimming for specific moments (a
-design decision, a correction, a rejected suggestion) rather than reading start to end.
+- English only for speech recognition, synthesis and retrieval.
+- Answers are generated in full, then synthesized in full; sentence-level streaming to TTS
+  isn't implemented yet, so there is a short wait before audio starts.
+- The reading position is display-only; retrieval always searches the whole book.
+- No authentication. The app is meant to run locally for one user.

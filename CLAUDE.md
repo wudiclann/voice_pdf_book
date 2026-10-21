@@ -131,7 +131,7 @@ keep them in mind for every decision, not just the initial architecture:
 
 | Layer | Choice |
 |---|---|
-| Frontend | React |
+| Frontend | React + Next.js (App Router, client-rendered); backend paths proxied to FastAPI via `next.config.ts` rewrites |
 | Backend | FastAPI (Python) |
 | Metadata/session DB | SQLite3 |
 | PDF parsing | PyMuPDF |
@@ -315,9 +315,10 @@ Design notes:
 
 ```
 project-root/
-├── start.sh                          # launcher (macOS/Linux): venv, deps, .env, runs both servers
-├── start.bat                         # launcher (Windows): same, opens backend/frontend in their own windows
-├── Start Demo.command                # double-clickable macOS wrapper around start.sh (no terminal typing)
+├── scripts/                          # launchers (project root is resolved as one level up)
+│   ├── start.sh                      # launcher (macOS/Linux): venv, deps, .env, runs both servers
+│   ├── start.bat                     # launcher (Windows): same, opens backend/frontend in their own windows
+│   └── Start Demo.command            # double-clickable macOS wrapper around start.sh (no terminal typing)
 ├── backend/
 │   ├── app/
 │   │   ├── main.py                  # FastAPI app entrypoint, mounts routes + static frontend
@@ -363,21 +364,24 @@ project-root/
 │
 ├── frontend/
 │   ├── src/
+│   │   ├── app/                     # Next.js App Router
+│   │   │   ├── layout.tsx           # fonts + <AppShell> (sidebar, upload dialog, shared state)
+│   │   │   ├── page.tsx             # / -> redirects to /library
+│   │   │   ├── library/page.tsx
+│   │   │   ├── books/[documentId]/page.tsx   # chat view for one book
+│   │   │   └── preferences/page.tsx # Settings (NOT /settings: that path is a FastAPI endpoint)
 │   │   ├── components/
+│   │   │   ├── AppShell.tsx         # shared state (documents, language, API-key status) + context
 │   │   │   ├── PdfUpload.tsx
 │   │   │   ├── ChatArea.tsx
 │   │   │   ├── MicButton.tsx
 │   │   │   └── AudioPlayer.tsx
-│   │   ├── pages/
-│   │   │   └── Home.tsx
-│   │   ├── api/
-│   │   │   └── client.ts            # fetch wrappers for backend endpoints
-│   │   ├── App.tsx
-│   │   └── main.tsx
-│   ├── index.html
+│   │   └── api/
+│   │       └── client.ts            # fetch wrappers for backend endpoints
 │   ├── package.json
-│   └── vite.config.ts               # dev-time proxy to FastAPI on :8000
+│   └── next.config.ts               # rewrites proxying backend paths to FastAPI on :8000
 │
+├── docs/screenshots/                # README screenshots (library, upload, chat, settings)
 ├── .gitignore                       # backend/data/, backend/.env, node_modules/, venv/, __pycache__/
 └── README.md                        # setup, run instructions, design notes
 ```
