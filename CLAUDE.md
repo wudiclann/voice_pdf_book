@@ -402,11 +402,14 @@ Key structural/visual points to preserve:
   (each entry deletable).
 - Library view: grid of book cards (cover, title, author, page-count tag, progress tag), search
   bar, "Upload PDF" button.
-- Chat view: header shows the open book + current chapter, plus an **"Answer tone" selector**
-  (Concise / Conversational / Scholarly) driving `conversations.answer_tone`. Split panel: left
-  side shows the actual PDF page (rendered image, or styled text excerpt when available, with
-  prev/next page nav); right side is the chat thread. Assistant messages show a citation tag
-  (e.g. "Section 3.2.2, p. 4") and a scrubbable audio player (play/pause, progress bar, duration).
+- Chat view: no top bar -- the sidebar is the only navigation. Split panel (default 50/50,
+  draggable divider): left side shows the actual PDF page (rendered image, with prev/next page
+  nav) under the open book's title and current chapter (top-left); right side is the chat thread
+  and composer. The **"Answer tone" selector** (Concise / Conversational / Scholarly, driving
+  `conversations.answer_tone`) is a compact pill group at the top-left of the chat area,
+  mirroring the book title on the PDF side. Your messages are solid-burgundy bubbles; assistant messages
+  are paper-style cards with clickable citation pills ("3 Model Architecture, p. 3-4", jumps the
+  PDF to that page) and a scrubbable audio player (play/pause, progress bar, duration).
 - Upload dialog: drag-and-drop PDF, "PDF only · up to 200 pages" hint.
 - Settings view, top to bottom: OpenAI API key card (matching the mockup's position at the top) —
   unlike the mockup's copy (which claims the key is "stored only on this device"), the real

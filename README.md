@@ -37,15 +37,23 @@ flowchart LR
   older ones, so follow-ups like "why not?" resolve correctly, even right after a refusal.
 - **Citations.** Every answer lists the chapters and pages it drew on; click one to jump the
   PDF viewer to that page.
-- **Answer tone.** Switch between Concise, Conversational and Scholarly per conversation.
+- **Answer tone.** Switch between Concise, Conversational and Scholarly per conversation, from the pills at the top of the chat.
 - **Configurable at runtime.** The OpenAI key, voice and speaking speed are set from the
   Settings page and take effect immediately, with no restart and no hand-editing of `.env`.
 
 ## Screenshots
 
-| Library | Upload |
-|---|---|
-| ![Library](docs/screenshots/library.png) | ![Upload dialog](docs/screenshots/upload.png) |
+### Library
+
+Each book is a card with its first page as the cover.
+
+![Library: each book's first page is its cover](docs/screenshots/library.png)
+
+### Upload
+
+![Upload dialog: drag and drop a PDF](docs/screenshots/upload.png)
+
+### Settings
 
 ![Settings: API key, answer voice and speed, interface language](docs/screenshots/settings.png)
 
