@@ -257,7 +257,9 @@ def get_document_page_image(document_id: str, page_number: int):
     finally:
         pdf.close()
 
-    return Response(content=png_bytes, media_type="image/png")
+    # A given page of a given document never changes, so let the browser cache it (the library
+    # grid requests every book's first page on each visit).
+    return Response(content=png_bytes, media_type="image/png", headers={"Cache-Control": "public, max-age=86400"})
 
 
 @router.get("/{document_id}/conversation", response_model=ConversationOut)
