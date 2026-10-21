@@ -15,7 +15,7 @@ import {
 } from "../api/client";
 import type { Strings } from "../i18n";
 import AudioPlayer from "./AudioPlayer";
-import { ChevronLeftIcon, ChevronRightIcon, SendIcon } from "./icons";
+import { ChevronLeftIcon, ChevronRightIcon, PageIcon, SendIcon } from "./icons";
 import MicButton from "./MicButton";
 import { showToast } from "./Toast";
 
@@ -32,10 +32,9 @@ interface ChatAreaProps {
 const TONES: AnswerTone[] = ["concise", "conversational", "scholarly"];
 const MIN_PDF_PANE_WIDTH = 320;
 const MIN_CHAT_PANE_WIDTH = 320;
-const DEFAULT_PDF_PANE_WIDTH = 520;
-// container padding (space-6 * 2) + .plate border (6px * 2), added on top of the
-// image's own rendered width so the pane fits the page with its usual framing.
-const PANE_HORIZONTAL_OVERHEAD = 68;
+const DIVIDER_WIDTH = 8;
+// Default split: the PDF and chat panes each take half of the space beside the divider.
+const DEFAULT_PDF_PANE_WIDTH = `calc(50% - ${DIVIDER_WIDTH / 2}px)`;
 const PLATE_MAX_WIDTH = 460;
 const ZOOM_MIN = 0.5;
 const ZOOM_MAX = 3;
@@ -181,7 +180,7 @@ export default function ChatArea({ t, documentId, documentTitle, totalPages, con
     const containerRect = container.getBoundingClientRect();
     const target = Math.max(
       MIN_PDF_PANE_WIDTH,
-      Math.min(width + PANE_HORIZONTAL_OVERHEAD, containerRect.width - MIN_CHAT_PANE_WIDTH),
+      Math.min((containerRect.width - DIVIDER_WIDTH) / 2, containerRect.width - MIN_CHAT_PANE_WIDTH),
     );
     setPdfPaneWidth(target);
   }
@@ -370,28 +369,6 @@ export default function ChatArea({ t, documentId, documentTitle, totalPages, con
 
   return (
     <>
-      <div style={{ display: "flex", alignItems: "center", gap: "var(--space-4)", padding: "var(--space-4) var(--space-6)", borderBottom: "1px solid var(--color-divider)", flexWrap: "wrap" }}>
-        <div style={{ flex: 1, minWidth: 160 }}>
-          <div style={{ fontFamily: "var(--font-heading)", fontWeight: "var(--font-heading-weight)" as unknown as number, fontSize: 21 }}>
-            {documentTitle}
-          </div>
-          <div style={{ opacity: 0.6, fontSize: 13 }}>{currentChapter?.title ?? ""}</div>
-        </div>
-        <div className="field" style={{ margin: 0 }}>
-          <label id="tone-label" style={{ fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase", opacity: 0.55 }}>
-            {t.answerTone}
-          </label>
-          <div className="seg" role="radiogroup" aria-labelledby="tone-label">
-            {TONES.map((toneOption) => (
-              <label className="seg-opt" key={toneOption}>
-                <input type="radio" name="tone" checked={tone === toneOption} onChange={() => handleToneChange(toneOption)} />
-                {toneOption === "concise" ? t.toneConcise : toneOption === "conversational" ? t.toneConversational : t.toneScholarly}
-              </label>
-            ))}
-          </div>
-        </div>
-      </div>
-
       <div ref={paneContainerRef} style={{ flex: 1, display: "flex", minHeight: 0 }}>
         <div
           ref={pdfPaneRef}
@@ -408,6 +385,18 @@ export default function ChatArea({ t, documentId, documentTitle, totalPages, con
             position: "relative",
           }}
         >
+          {/* Book title + current chapter, top-left. Right padding keeps it clear of the hover zoom toolbar. */}
+          <div style={{ padding: "var(--space-6) 160px 0 var(--space-6)", minWidth: 0 }}>
+            <div
+              title={documentTitle}
+              style={{ fontFamily: "var(--font-heading)", fontWeight: "var(--font-heading-weight)" as unknown as number, fontSize: 20, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}
+            >
+              {documentTitle}
+            </div>
+            <div style={{ opacity: 0.6, fontSize: 13, minHeight: 20, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+              {currentChapter?.title ?? ""}
+            </div>
+          </div>
           <div
             style={{
               position: "absolute",
@@ -448,7 +437,7 @@ export default function ChatArea({ t, documentId, documentTitle, totalPages, con
           </div>
           <div
             ref={imageScrollRef}
-            className="m-scroll"
+            className="m-scroll m-pdf-scroll"
             onMouseDown={handlePanMouseDown}
             style={{ flex: 1, minHeight: 0, overflow: "auto", padding: "var(--space-6)", display: "flex", cursor: isPanning ? "grabbing" : "grab" }}
           >
@@ -489,7 +478,7 @@ export default function ChatArea({ t, documentId, documentTitle, totalPages, con
             setHasManuallyResized(true);
           }}
           style={{
-            width: 8,
+            width: DIVIDER_WIDTH,
             flexShrink: 0,
             cursor: "col-resize",
             background: "transparent",
@@ -497,46 +486,45 @@ export default function ChatArea({ t, documentId, documentTitle, totalPages, con
         />
 
         <div style={{ flex: 1, minWidth: MIN_CHAT_PANE_WIDTH, display: "flex", flexDirection: "column", minHeight: 0 }}>
-          <div ref={threadRef} className="m-scroll" style={{ flex: 1, overflow: "auto", padding: "var(--space-6)", display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
+          {/* Answer tone, top-left of the chat area (mirrors the book title top-left of the PDF pane).
+              Row height matches the title line so the two line up. */}
+          <div style={{ display: "flex", alignItems: "center", minHeight: 31, padding: "var(--space-6) var(--space-6) 0" }}>
+            <div className="seg seg-sm" role="radiogroup" aria-label={t.answerTone} title={t.answerTone}>
+              {TONES.map((toneOption) => (
+                <label className="seg-opt" key={toneOption}>
+                  <input type="radio" name="tone" checked={tone === toneOption} onChange={() => handleToneChange(toneOption)} />
+                  {toneOption === "concise" ? t.toneConcise : toneOption === "conversational" ? t.toneConversational : t.toneScholarly}
+                </label>
+              ))}
+            </div>
+          </div>
+          <div ref={threadRef} className="m-scroll" style={{ flex: 1, overflow: "auto", padding: "var(--space-6)", display: "flex", flexDirection: "column", gap: "var(--space-4)", maskImage: "linear-gradient(to bottom, transparent 0, #000 20px)" }}>
             {messages.map((msg) => {
               const isUser = msg.role === "user";
               const sources = dedupeSources(msg.sources);
               return (
-                <div key={msg.id} style={{ display: "flex", flexDirection: "column", alignItems: isUser ? "flex-end" : "flex-start" }}>
-                  <div
-                    className="card bubble-pop"
-                    style={{
-                      maxWidth: "88%",
-                      padding: "var(--space-2) var(--space-3)",
-                      background: isUser ? "var(--color-surface)" : "var(--color-bg)",
-                      borderColor: isUser ? "var(--color-neutral-300)" : "var(--color-divider)",
-                      borderRadius: 6,
-                    }}
-                  >
+                <div key={msg.id} className={`msg ${isUser ? "msg-user" : "msg-assistant"}`}>
+                  <div className={`bubble bubble-pop ${isUser ? "bubble-user" : "bubble-assistant"}`}>
                     {isUser && msg.audio_path ? (
                       // Voice-originated user message: only the recording is shown, never
                       // the transcribed text.
-                      <AudioPlayer src={msg.audio_path} />
+                      <AudioPlayer src={msg.audio_path} onAccent />
                     ) : (
                       <>
-                        <div style={{ textAlign: "left", lineHeight: 1.55 }}>
+                        <div style={{ textAlign: "left" }}>
                           <Streamdown>{msg.text}</Streamdown>
                         </div>
                         {sources.length > 0 && (
-                          <div style={{ marginTop: "var(--space-3)", display: "flex", gap: "var(--space-2)", flexWrap: "wrap" }}>
+                          <div className="bubble-sources">
                             {sources.map((s) =>
                               s.start_page != null ? (
-                                <button
-                                  key={sourceKey(s)}
-                                  type="button"
-                                  className="tag tag-outline tag-clickable"
-                                  style={{ border: "1px solid var(--color-accent)" }}
-                                  onClick={() => goToPage(s.start_page!)}
-                                >
+                                <button key={sourceKey(s)} type="button" className="cite-chip" onClick={() => goToPage(s.start_page!)}>
+                                  <PageIcon />
                                   {citationLabel(s)}
                                 </button>
                               ) : (
-                                <span key={sourceKey(s)} className="tag tag-outline">
+                                <span key={sourceKey(s)} className="cite-chip">
+                                  <PageIcon />
                                   {citationLabel(s)}
                                 </span>
                               ),
@@ -563,7 +551,7 @@ export default function ChatArea({ t, documentId, documentTitle, totalPages, con
           </div>
 
           <div style={{ padding: "var(--space-3) var(--space-6) var(--space-4)" }}>
-            <div style={{ border: "1px solid var(--color-divider)", borderRadius: 6, padding: "var(--space-3) var(--space-2) var(--space-2) var(--space-3)", display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
+            <div style={{ border: "1px solid var(--color-divider)", borderRadius: 16, padding: "var(--space-3) var(--space-2) var(--space-2) var(--space-3)", display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
               {isRecording ? (
                 <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", minHeight: 22, color: "var(--color-accent)", fontSize: 14 }}>
                   <span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--color-accent)", flexShrink: 0 }} />

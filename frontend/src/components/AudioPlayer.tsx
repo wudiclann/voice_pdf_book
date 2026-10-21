@@ -4,6 +4,8 @@ import { PauseIcon, PlayIcon } from "./icons";
 interface AudioPlayerProps {
   src: string;
   autoPlay?: boolean;
+  // light-on-dark styling, for sitting inside the burgundy user bubble
+  onAccent?: boolean;
 }
 
 function formatTime(seconds: number): string {
@@ -13,7 +15,7 @@ function formatTime(seconds: number): string {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
-export default function AudioPlayer({ src, autoPlay }: AudioPlayerProps) {
+export default function AudioPlayer({ src, autoPlay, onAccent }: AudioPlayerProps) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -79,7 +81,7 @@ export default function AudioPlayer({ src, autoPlay }: AudioPlayerProps) {
   }
 
   return (
-    <div style={{ marginTop: "var(--space-3)", display: "flex", alignItems: "center", gap: "var(--space-2)", minWidth: 220 }}>
+    <div className={onAccent ? "audio audio-on-accent" : "audio"}>
       <audio
         ref={audioRef}
         src={src}
@@ -92,20 +94,16 @@ export default function AudioPlayer({ src, autoPlay }: AudioPlayerProps) {
       />
       <button
         type="button"
-        className="btn btn-ghost btn-icon"
+        className="audio-play"
         aria-label={isPlaying ? "Pause answer" : "Play answer"}
-        style={{ width: 28, height: 28 }}
         onClick={togglePlay}
       >
-        {isPlaying ? <PauseIcon /> : <PlayIcon />}
+        {isPlaying ? <PauseIcon size={12} /> : <PlayIcon size={12} />}
       </button>
-      <div
-        style={{ flex: 1, height: 6, background: "var(--color-neutral-300)", borderRadius: 2, position: "relative", cursor: "pointer" }}
-        onClick={seek}
-      >
-        <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: playedPct, background: "var(--color-accent-700)", borderRadius: 2 }} />
+      <div className="audio-track" onClick={seek}>
+        <div className="audio-fill" style={{ width: playedPct }} />
       </div>
-      <span style={{ fontSize: 11, opacity: 0.55, minWidth: 44, textAlign: "right" }}>
+      <span className="audio-time">
         {formatTime(currentTime)} / {formatTime(duration)}
       </span>
     </div>
